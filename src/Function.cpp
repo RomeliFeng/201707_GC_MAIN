@@ -16,6 +16,7 @@
 #include "OE4.h"
 
 #include "ExADC.h"
+#include "U_DAC.h"
 
 #include "Limit.h"
 #include "ExLimit.h"
@@ -24,8 +25,13 @@
 
 #include "TimeTick.h"
 
+#include "PID.h"
+
 TwoWordtoByteSigned_Typedef Function::ASBSWAAE_Pos[512];
 WordtoByteSigned_Typedef Function::ASBSWAAE_ADC[512];
+
+extern PIDParam_Typedef PIDParam;
+extern PIDClass PID;
 
 void Function::Enter(P_Buf_Typedef* p_buf) {
 	uint8_t mask = p_buf->pc & PC_Mask;
@@ -86,6 +92,9 @@ void Function::Inquire(P_Buf_Typedef* p_buf) {
 		num.word = num.word > 1024 ? 1024 : num.word;
 		Inquire_Special(num.word);
 		break;
+	case PC_Inquire_DAC:
+		Inquire_DAC(p_buf->data[0]);
+		break;
 	case PC_Inquire_Status:
 		Inquire_Status(p_buf->data[0]);
 		break;
@@ -113,6 +122,13 @@ void Function::Control(P_Buf_Typedef* p_buf) {
 	}
 	case PC_Control_SM:
 		Control_SM(p_buf->data[0], p_buf->data[1]);
+		break;
+	case PC_Control_DAC: {
+		WordtoByte_Typedef data;
+		data.byte[0] = p_buf->data[1];
+		data.byte[1] = p_buf->data[2];
+		Control_DAC(p_buf->data[0], data.word);
+	}
 		break;
 	default:
 		break;
@@ -172,20 +188,49 @@ void Function::Setting(P_Buf_Typedef* p_buf) {
 		acc.byte[2] = p_buf->data[5];
 		acc.byte[3] = p_buf->data[6];
 		Setting_SM_Speed(p_buf->data[0], speed.word, acc.twoword);
-		break;
 	}
-	case PC_Setting_Valve_Default:
+		break;
+	case PC_Setting_Valve_Default: {
 		TwoWordtoByte_Typedef status;
 		status.byte[0] = p_buf->data[0];
 		status.byte[1] = p_buf->data[1];
 		status.byte[2] = p_buf->data[2];
 		Setting_Valve_Default(status.twoword);
+	}
 		break;
 	case PC_Setting_Encoder_Zero:
 		Setting_Encoder_Zero(p_buf->data[0]);
 		break;
 	case PC_Setting_Protect_Limit:
 		Setting_Protect_Limit(p_buf->data[0], p_buf->data[1], p_buf->data[2]);
+		break;
+	case PC_Setting_PIDParam: {
+		DoubletoByte_Typedef p, i, d, set;
+		uint8_t index = 1;
+		for (uint8_t j = 0; j < 8; ++j) {
+			p.byte[j] = p_buf->data[index++];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			i.byte[j] = p_buf->data[index++];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			d.byte[j] = p_buf->data[index++];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			set.byte[j] = p_buf->data[index++];
+		}
+		Setting_PIDParam(p_buf->data[0], p, i, d, set);
+	}
+		break;
+	case PC_Setting_PIDInput: {
+		DoubletoByte_Typedef now;
+		uint8_t index = 1;
+		for (uint8_t j = 0; j < 8; ++j) {
+			now.byte[j] = p_buf->data[index++];
+		}
+
+		Setting_PIDInput(p_buf->data[0], now);
+	}
 		break;
 	case PC_Setting_USART:
 		Setting_USART(p_buf->data[0]);
@@ -196,8 +241,7 @@ void Function::Setting(P_Buf_Typedef* p_buf) {
 	default:
 		break;
 	}
-	uint8_t ttt = 0;
-	Protocol::Send(PC_Post_Complete, 0, p_buf->pc, &ttt);
+	Protocol::Send(PC_Post_Complete, p_buf->pc);
 }
 
 void Function::Special(P_Buf_Typedef* p_buf) {
@@ -234,7 +278,7 @@ void Function::Inquire_ExLimit() {
 	Protocol::Send(PC_Post_Complete, 3, PC_Inquire_ExLimit, ExLimit::Data.byte);
 }
 
-void Function::Inquire_Valve() { ///////////////////////////////////////////
+void Function::Inquire_Valve() {
 	uint8_t tmp[3];
 	tmp[0] = (uint8_t) PowerDev::Status;
 	tmp[2] = (uint8_t) (PowerDev::Status >> 8);
@@ -258,8 +302,24 @@ void Function::Inquire_Encoder(uint8_t no) {
 }
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void Function::Inquire_ADC(uint8_t no) {
+	WordtoByte_Typedef data;
+	data.word = 0;
+	switch (no) {
+	case 0:
 
+		break;
+	case 1:
+		Protocol::Send(Salve_AC, PC_Inquire_ADC);
+		if (SPIBUS::Ready()) {
+
+		}
+		Protocol::Send(PC_Post_Complete, 2, PC_Inquire_ADC, data.byte);
+		break;
+	default:
+		break;
+	}
 }
+
 #pragma GCC diagnostic pop
 void Function::Inquire_ExADC(uint8_t no) {
 	ExADC::RefreshData();
@@ -290,20 +350,32 @@ void Function::Inquire_Special(uint16_t num) {
 	Protocol::Send(PC_Post_Complete, num * 6, PC_Inquire_Special, tmp);
 }
 
+void Function::Inquire_DAC(uint8_t no) {
+	switch (no) {
+	case 0:
+		break;
+	case 1:
+		Protocol::Send(Salve_AC, PC_Inquire_DAC);
+		break;
+	default:
+		break;
+	}
+}
+
 void Function::Inquire_Status(uint8_t no) {
-	uint8_t tmp = 0;
+	uint8_t status = 0x00;
 	switch (no) {
 	case 1:
-		tmp = (uint8_t) SM1::Busy;
+		status = (uint8_t) SM1::Busy;
 		break;
 	case 2:
-		tmp = (uint8_t) SM2::Busy;
+		status = (uint8_t) SM2::Busy;
 		break;
 	default:
 
 		break;
 	}
-	Protocol::Send(PC_Post_Complete, 1, PC_Inquire_Status, &tmp);
+	Protocol::Send(PC_Post_Complete, 1, PC_Inquire_Status, &status);
 }
 
 void Function::Control_Valve(uint32_t status) {
@@ -329,6 +401,19 @@ void Function::Control_SM(uint8_t no, uint8_t status) {
 		} else {
 			SM2::Run(status != 0 ? SM_DIR_Forward : SM_DIR_Backward);
 		}
+		break;
+	default:
+		break;
+	}
+}
+
+void Function::Control_DAC(uint8_t no, uint16_t data) {
+	switch (no) {
+	case 0:
+		U_DAC::RefreshData((uint16_t) (data & 0xfff));
+		break;
+	case 1:
+
 		break;
 	default:
 		break;
@@ -501,6 +586,51 @@ void Function::Setting_Protect_Limit(uint8_t no, uint8_t status,
 		default:
 			break;
 		}
+		break;
+	default:
+		break;
+	}
+}
+
+void Function::Setting_PIDParam(uint8_t no, DoubletoByte_Typedef p,
+		DoubletoByte_Typedef i, DoubletoByte_Typedef d,
+		DoubletoByte_Typedef set) {
+	switch (no) {
+	case 0:
+		PIDParam.kp = p.d;
+		PIDParam.ki = i.d;
+		PIDParam.kd = d.d;
+		PIDParam.set = set.d;
+		break;
+	case 1: {
+		uint8_t data[33];
+		uint8_t index = 0;
+		for (uint8_t j = 0; j < 8; ++j) {
+			data[index++] = p.byte[j];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			data[index++] = i.byte[j];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			data[index++] = d.byte[j];
+		}
+		for (uint8_t j = 0; j < 8; ++j) {
+			data[index++] = set.byte[j];
+		}
+		Protocol::Send(Salve_AC, PC_Setting_PIDParam, 33, data);
+	}
+		break;
+	default:
+		break;
+	}
+}
+
+void Function::Setting_PIDInput(uint8_t no, DoubletoByte_Typedef now) {
+	switch (no) {
+	case 0:
+		PIDParam.now = now.d;
+		break;
+	case 1:
 		break;
 	default:
 		break;

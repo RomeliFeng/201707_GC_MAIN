@@ -10,9 +10,9 @@
 #define TIM_ACC TIM6
 #define TIM_ACC_IRQn TIM6_IRQn
 #define TIM_ACC_RCC RCC_APB1Periph_TIM6
-#define TIM_PUL TIM2
-#define TIM_PUL_IRQn TIM2_IRQn
-#define TIM_PUL_RCC RCC_APB1Periph_TIM2
+#define TIM_PUL TIM5
+#define TIM_PUL_IRQn TIM5_IRQn
+#define TIM_PUL_RCC RCC_APB1Periph_TIM5
 
 #define PUL_PIN GPIO_Pin_0
 #define DIR_PIN GPIO_Pin_1
@@ -239,7 +239,7 @@ void TIM6_IRQHandler(void) {
 	TIM_ClearITPendingBit(TIM_ACC, TIM_IT_Update);
 }
 
-void TIM2_IRQHandler(void) {
+void TIM5_IRQHandler(void) {
 	SM2::CurStep++;
 	if ((SM2::CurStep < SM2::TgtStep) || SM2::NoStep) { //预定步数未到，继续累加
 		if (SM2::FullStep == false) {

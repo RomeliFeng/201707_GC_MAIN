@@ -19,6 +19,7 @@
 #include "OE4.h"
 
 #include "ExADC.h"
+#include "U_DAC.h"
 
 #include "Limit.h"
 #include "ExLimit.h"
@@ -33,6 +34,17 @@
 #include "Function.h"
 
 #include "U_SPI2.h"
+#include "SPIBUS.h"
+
+#include "PID.h"
+
+#define SPFUN1
+#define ENABLEPID
+
+#ifdef  ENABLEPID
+PIDParam_Typedef PIDParam = { 0, 0, 0, 0, 0, 0, 0, 4095 };
+PIDClass PID = PIDClass(&PIDParam, PIDMode_Post);
+#endif
 
 void PeriphInit();
 
@@ -57,14 +69,20 @@ int main(int argc, char* argv[]) {
 
 void PeriphInit() {
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_2);
+	//Init Time Base
+	Delay_Init(100);
 
 	LED::Init();
 	LED::Turn(Color_Blue);
 
-	Delay_Init(1000);
+	//Init Comunication
 	U_USART3.begin(1024000);
+	SPIBUS::Init();
+	U_SPI2::Init(SPI2_Speed_9M);
+
 	Protocol::Init();
 
+	//Init Periph
 	SM1::Init();
 	SM2::Init();
 	OE2::Init();
@@ -73,6 +91,8 @@ void PeriphInit() {
 	ExADC::Init();
 	Limit::Init();
 	ExLimit::Init();
+
+	U_DAC::Init();
 
 	PowerDev::Init();
 
@@ -85,8 +105,19 @@ void TimeTickISR() {
 	count++;
 	Limit::RefreshData();
 	Protect::SM();
+#ifdef ENABLEPID
+	PID.Compute();
+	U_DAC::RefreshData((uint16_t) PIDParam.out);
+#endif
 	if (count >= 20) {
 		ExLimit::RefreshData();
+#ifdef SPFUN1
+		if ((ExLimit::Data.byte[2] & 0x80) != 0) {
+			PowerDev::Status |= ValveCh_0;
+		} else {
+			PowerDev::Status &= (~ValveCh_0);
+		}
+#endif
 		PowerDev::RefreshData();
 		if (TimeTick::ThreadStart && Protocol::P_Rcv.flag) {
 			if ((Protocol::P_Rcv.pc & PC_Mask) != PC_AutoControl_Mask) {

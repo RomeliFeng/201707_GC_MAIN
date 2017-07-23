@@ -34,24 +34,30 @@ public:
 	static void Inquire_Tigger();
 	static void Inquire_Motor();
 	static void Inquire_Special(uint16_t num);
+	static void Inquire_DAC(uint8_t no);
 	static void Inquire_Status(uint8_t no);
 
 	static void Control_Valve(uint32_t status);
 	static void Control_Motor(int16_t speed);
 	static void Control_SM(uint8_t no, uint8_t status);
+	static void Control_DAC(uint8_t no, uint16_t data);
 
 	static void AutoControl_SM_By_Step(uint8_t no, int32_t step);
 	static void AutoControl_SM_By_Limit(uint8_t no, uint8_t status,
 			uint8_t limitNo);
 	static bool AutoControl_SM_By_Limit_Judge(uint8_t limitNo);
 	static void AutoControl_SM_By_Step_With_ADC_And_Encoder(uint8_t no,
-			int32_t step, uint8_t encoderNo,uint8_t adcNo, uint16_t num);
+			int32_t step, uint8_t encoderNo, uint8_t adcNo, uint16_t num);
 
 	static void Setting_SM_Speed(uint8_t no, uint16_t speed, uint32_t tgtAcc);
 	static void Setting_Valve_Default(uint32_t status);
 	static void Setting_Encoder_Zero(uint8_t no);
 	static void Setting_Protect_Limit(uint8_t no, uint8_t status,
 			uint8_t limitNo);
+	static void Setting_PIDParam(uint8_t no, DoubletoByte_Typedef p,
+			DoubletoByte_Typedef i, DoubletoByte_Typedef d,
+			DoubletoByte_Typedef set);
+	static void Setting_PIDInput(uint8_t no, DoubletoByte_Typedef now);
 	static void Setting_USART(uint8_t com);
 	static void Setting_Address(uint8_t add);
 

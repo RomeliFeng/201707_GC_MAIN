@@ -9,6 +9,10 @@
 #define PROTOCOL_H_
 
 #include "cmsis_device.h"
+#include "Typedef.h"
+#include "SPIBUS.H"
+#include "U_USART3.h"
+#include "U_SPI2.h"
 
 typedef enum _PA_Typedef { //Protocol Analysis
 	PA_Ok, PA_AddError, PA_CheckSumError, PA_FrameError
@@ -27,12 +31,14 @@ typedef enum _PC_Typedef { //Protocol Command
 	PC_Inquire_Tigger = 0x07,
 	PC_Inquire_Motor = 0x08,
 	PC_Inquire_Special = 0x09,
+	PC_Inquire_DAC = 0x10,
 	PC_Inquire_Status = 0x1f,
 
 	PC_Control_Mask = 0x20,
 	PC_Control_Valve = 0x21,
 	PC_Control_Motor = 0x22,
 	PC_Control_SM = 0x23,
+	PC_Control_DAC = 0x24,
 
 	PC_AutoControl_Mask = 0x40,
 	PC_AutoControl_SM_By_Step = 0x41,
@@ -44,6 +50,8 @@ typedef enum _PC_Typedef { //Protocol Command
 	PC_Setting_Valve_Default = 0xa2,
 	PC_Setting_Encoder_Zero = 0xa3,
 	PC_Setting_Protect_Limit = 0xa4,
+	PC_Setting_PIDParam = 0xa5,
+	PC_Setting_PIDInput = 0xa6,
 	PC_Setting_USART = 0xbe,
 	PC_Setting_Address = 0xbf,
 
@@ -67,7 +75,7 @@ typedef struct _DataBuf_Typedef {
 
 typedef struct _P_Buf_Typedef {
 	PC_Typedef pc;
-	uint8_t data[32];
+	uint8_t data[64];
 	uint8_t len;
 	bool flag;
 } P_Buf_Typedef;
@@ -83,6 +91,15 @@ public:
 	static _PA_Typedef Analysis(P_Buf_Typedef* databuf);
 	static void Send(PC_Typedef com, uint16_t datalen, uint8_t com_get,
 			uint8_t* data);
+	static inline void Send(PC_Typedef com, uint8_t com_get) {
+		Send(com, 0, com_get, (uint8_t*) 0x00);
+	}
+
+	static void Send(Salve_Typedef salve, PC_Typedef com, uint16_t datalen,
+			uint8_t* data);
+	static inline void Send(Salve_Typedef salve, PC_Typedef com) {
+		Send(salve, com, 0, (uint8_t*) 0x00);
+	}
 };
 
 #endif /* PROTOCOL_H_ */

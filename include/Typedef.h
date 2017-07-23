@@ -8,6 +8,8 @@
 #ifndef TYPEDEF_H_
 #define TYPEDEF_H_
 
+#include "cmsis_device.h"
+
 typedef struct _Bit_Typedef {
 	uint8_t bit0 :1;
 	uint8_t bit1 :1;
@@ -43,5 +45,10 @@ typedef union _TwoWordtoByteSigned_Typedef {
 	uint8_t byte[4];
 	int32_t twoword;
 } TwoWordtoByteSigned_Typedef;
+
+typedef union _DoubletoByte_Typedef{
+	double d;
+	uint8_t byte[8];
+} DoubletoByte_Typedef;
 
 #endif /* TYPEDEF_H_ */
