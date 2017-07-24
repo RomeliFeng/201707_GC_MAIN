@@ -52,6 +52,7 @@ typedef enum _PC_Typedef { //Protocol Command
 	PC_Setting_Protect_Limit = 0xa4,
 	PC_Setting_PIDParam = 0xa5,
 	PC_Setting_PIDInput = 0xa6,
+	PC_Setting_PIDEnable = 0xa7,
 	PC_Setting_USART = 0xbe,
 	PC_Setting_Address = 0xbf,
 

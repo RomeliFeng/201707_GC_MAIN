@@ -11,11 +11,16 @@
 #include "cmsis_device.h"
 #include "Protocol.h"
 #include "Typedef.h"
+#include "PID.h"
 
 class Function {
 public:
 	static TwoWordtoByteSigned_Typedef ASBSWAAE_Pos[512];
 	static WordtoByteSigned_Typedef ASBSWAAE_ADC[512];
+
+	static PIDParam_Typedef PIDParam;
+	static PIDClass PID;
+	static bool PIDEnable;
 
 	static void Enter(P_Buf_Typedef* p_buf);
 
@@ -58,6 +63,7 @@ public:
 			DoubletoByte_Typedef i, DoubletoByte_Typedef d,
 			DoubletoByte_Typedef set);
 	static void Setting_PIDInput(uint8_t no, DoubletoByte_Typedef now);
+	static void Setting_PIDEnable(uint8_t no, uint8_t state);
 	static void Setting_USART(uint8_t com);
 	static void Setting_Address(uint8_t add);
 

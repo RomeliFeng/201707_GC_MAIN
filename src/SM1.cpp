@@ -48,6 +48,22 @@ void SM1::Move(uint32_t step, SM_DIR_Typedef dir) {
 	TIM_Cmd(TIM_ACC, DISABLE);
 	TIM_Cmd(TIM_PUL, DISABLE);
 
+	Limit::RefreshData();
+	switch (dir) {
+	case SM_DIR_Forward:
+		if ((Limit::Data & ForwardLimit) != 0) {
+			return;
+		}
+		break;
+	case SM_DIR_Backward:
+		if ((Limit::Data & BackwardLimit) != 0) {
+			return;
+		}
+		break;
+	default:
+		break;
+	}
+
 	EN_RESET
 	;
 	//设置方向
@@ -90,6 +106,22 @@ void SM1::Move(uint32_t step, SM_DIR_Typedef dir) {
 void SM1::Run(SM_DIR_Typedef dir) {
 	TIM_Cmd(TIM_ACC, DISABLE);
 	TIM_Cmd(TIM_PUL, DISABLE);
+
+	Limit::RefreshData();
+	switch (dir) {
+	case SM_DIR_Forward:
+		if ((Limit::Data & ForwardLimit) != 0) {
+			return;
+		}
+		break;
+	case SM_DIR_Backward:
+		if ((Limit::Data & BackwardLimit) != 0) {
+			return;
+		}
+		break;
+	default:
+		break;
+	}
 
 	EN_RESET
 	;

@@ -39,12 +39,6 @@
 #include "PID.h"
 
 #define SPFUN1
-#define ENABLEPID
-
-#ifdef  ENABLEPID
-PIDParam_Typedef PIDParam = { 0, 0, 0, 0, 0, 0, 0, 4095 };
-PIDClass PID = PIDClass(&PIDParam, PIDMode_Post);
-#endif
 
 void PeriphInit();
 
@@ -93,6 +87,7 @@ void PeriphInit() {
 	ExLimit::Init();
 
 	U_DAC::Init();
+	U_DAC::RefreshData((uint16_t) 2048);
 
 	PowerDev::Init();
 
@@ -105,10 +100,11 @@ void TimeTickISR() {
 	count++;
 	Limit::RefreshData();
 	Protect::SM();
-#ifdef ENABLEPID
-	PID.Compute();
-	U_DAC::RefreshData((uint16_t) PIDParam.out);
-#endif
+	if (Function::PIDEnable) {
+		Function::PID.Compute();
+		U_DAC::RefreshData((uint16_t) (Function::PIDParam.out + 2047));
+	}
+
 	if (count >= 20) {
 		ExLimit::RefreshData();
 #ifdef SPFUN1

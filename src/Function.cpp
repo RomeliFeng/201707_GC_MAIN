@@ -25,13 +25,12 @@
 
 #include "TimeTick.h"
 
-#include "PID.h"
-
 TwoWordtoByteSigned_Typedef Function::ASBSWAAE_Pos[512];
 WordtoByteSigned_Typedef Function::ASBSWAAE_ADC[512];
 
-extern PIDParam_Typedef PIDParam;
-extern PIDClass PID;
+PIDParam_Typedef Function::PIDParam = { 0, 0, 0, 0, 0, 0, -2047, 2047 };
+PIDClass Function::PID = PIDClass(&PIDParam, PIDMode_Post);
+bool Function::PIDEnable = false;
 
 void Function::Enter(P_Buf_Typedef* p_buf) {
 	uint8_t mask = p_buf->pc & PC_Mask;
@@ -188,16 +187,18 @@ void Function::Setting(P_Buf_Typedef* p_buf) {
 		acc.byte[2] = p_buf->data[5];
 		acc.byte[3] = p_buf->data[6];
 		Setting_SM_Speed(p_buf->data[0], speed.word, acc.twoword);
-	}
+
 		break;
+	}
 	case PC_Setting_Valve_Default: {
 		TwoWordtoByte_Typedef status;
 		status.byte[0] = p_buf->data[0];
 		status.byte[1] = p_buf->data[1];
 		status.byte[2] = p_buf->data[2];
 		Setting_Valve_Default(status.twoword);
-	}
+
 		break;
+	}
 	case PC_Setting_Encoder_Zero:
 		Setting_Encoder_Zero(p_buf->data[0]);
 		break;
@@ -220,8 +221,9 @@ void Function::Setting(P_Buf_Typedef* p_buf) {
 			set.byte[j] = p_buf->data[index++];
 		}
 		Setting_PIDParam(p_buf->data[0], p, i, d, set);
-	}
+
 		break;
+	}
 	case PC_Setting_PIDInput: {
 		DoubletoByte_Typedef now;
 		uint8_t index = 1;
@@ -230,7 +232,11 @@ void Function::Setting(P_Buf_Typedef* p_buf) {
 		}
 
 		Setting_PIDInput(p_buf->data[0], now);
+
+		break;
 	}
+	case PC_Setting_PIDEnable:
+		Setting_PIDEnable(p_buf->data[0], p_buf->data[1]);
 		break;
 	case PC_Setting_USART:
 		Setting_USART(p_buf->data[0]);
@@ -601,6 +607,7 @@ void Function::Setting_PIDParam(uint8_t no, DoubletoByte_Typedef p,
 		PIDParam.ki = i.d;
 		PIDParam.kd = d.d;
 		PIDParam.set = set.d;
+		PID.Clear();
 		break;
 	case 1: {
 		uint8_t data[33];
@@ -629,6 +636,23 @@ void Function::Setting_PIDInput(uint8_t no, DoubletoByte_Typedef now) {
 	switch (no) {
 	case 0:
 		PIDParam.now = now.d;
+		break;
+	case 1:
+		break;
+	default:
+		break;
+	}
+}
+
+void Function::Setting_PIDEnable(uint8_t no, uint8_t state) {
+	switch (no) {
+	case 0:
+		if (state != 0) {
+			PIDEnable = true;
+		} else {
+			PIDEnable = false;
+			U_DAC::RefreshData((uint16_t) 2048);
+		}
 		break;
 	case 1:
 		break;
