@@ -6,6 +6,7 @@
  */
 
 #include <SM2.h>
+#include "Limit.h"
 
 #define TIM_ACC TIM6
 #define TIM_ACC_IRQn TIM6_IRQn
