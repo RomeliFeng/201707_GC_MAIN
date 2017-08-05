@@ -19,6 +19,7 @@
 #include "OE4.h"
 
 #include "ExADC.h"
+#include "U_ADC1.h"
 #include "U_DAC.h"
 
 #include "Limit.h"
@@ -58,6 +59,7 @@ int main(int argc, char* argv[]) {
 
 		}
 		LED::Turn(Color_Green);
+		U_ADC1::RefreshData();
 	}
 }
 
@@ -82,33 +84,44 @@ void PeriphInit() {
 	OE2::Init();
 	OE4::Init();
 
+	U_ADC1::Init();
 	ExADC::Init();
 	Limit::Init();
 	ExLimit::Init();
 
 	U_DAC::Init();
-	U_DAC::RefreshData((uint16_t) 2048);
+	U_DAC::RefreshData((uint16_t)2047);
+	Function::PID.SetLimits(-2047, 2047);
 
 	PowerDev::Init();
 
-	TimeTick::Init(5);
+	TimeTick::Init(1);
 }
 
 void TimeTickISR() {
 	static uint16_t count = 0;
+//	static float lastOut;
+//	static float k = 0.7;
+
 	LED::Turn(Color_Blue);
 	count++;
 	Limit::RefreshData();
 	Protect::SM();
-	if (Function::PIDEnable) {
-		Function::PID.Compute();
-		U_DAC::RefreshData((uint16_t) (Function::PIDParam.out + 2047));
-	}
 
-	if (count >= 20) {
+	if (Function::PIDEnable) {
+		Function::PIDParam.Input = (U_ADC1::Data.word) - 2047;
+		Function::PID.Compute();
+
+		U_DAC::RefreshData((uint16_t) (Function::PIDParam.Output + 2047));
+//		U_DAC::RefreshData(
+//				(uint16_t) (((Function::PIDParam.out + 2047) * (1.0 - k))
+//						+ (lastOut * k)));
+//		lastOut = Function::PIDParam.out + 2047;
+	}
+	if (count >= 100) {
 		ExLimit::RefreshData();
 #ifdef SPFUN1
-		if ((ExLimit::Data.byte[2] & 0x80) != 0) {
+		if ((ExLimit::Data.byte[0] & 0x04) != 0) {
 			PowerDev::Status |= ValveCh_0;
 		} else {
 			PowerDev::Status &= (~ValveCh_0);

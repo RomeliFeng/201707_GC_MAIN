@@ -1,3 +1,6 @@
 [submodule "User_lib"]
 	path = User_lib
 	url = https://github.com/tromeli/STM32F1_User_lib
+[submodule "Project_lib"]
+	path = Project_lib
+	url = https://github.com/tromeli/GC_MAIN_Project_lib.git

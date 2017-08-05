@@ -29,5 +29,6 @@
 #define STM32F1_CMSIS_DEVICE_H_
 
 #include "stm32f10x.h"
+#include "Typedef.h"
 
 #endif // STM32F1_CMSIS_DEVICE_H_
