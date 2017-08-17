@@ -39,7 +39,8 @@
 
 #include "PID.h"
 
-#define SPFUN1
+//#define SPFUN1
+#define EMO
 
 void PeriphInit();
 
@@ -59,7 +60,7 @@ int main(int argc, char* argv[]) {
 
 		}
 		LED::Turn(Color_Green);
-		U_ADC1::RefreshData();
+//		U_ADC1::RefreshData();
 	}
 }
 
@@ -72,7 +73,7 @@ void PeriphInit() {
 	LED::Turn(Color_Blue);
 
 	//Init Comunication
-	U_USART3.begin(1024000);
+	U_USART3.begin(500000);
 	SPIBUS::Init();
 	U_SPI2::Init(SPI2_Speed_9M);
 
@@ -90,7 +91,7 @@ void PeriphInit() {
 	ExLimit::Init();
 
 	U_DAC::Init();
-	U_DAC::RefreshData((uint16_t)2047);
+	U_DAC::RefreshData((uint16_t) 2047);
 	Function::PID.SetLimits(-2047, 2047);
 
 	PowerDev::Init();
@@ -110,6 +111,7 @@ void TimeTickISR() {
 
 	if (Function::PIDEnable) {
 		Function::PIDParam.Input = (U_ADC1::Data.word) - 2047;
+
 		Function::PID.Compute();
 
 		U_DAC::RefreshData((uint16_t) (Function::PIDParam.Output + 2047));
@@ -125,6 +127,11 @@ void TimeTickISR() {
 			PowerDev::Status |= ValveCh_0;
 		} else {
 			PowerDev::Status &= (~ValveCh_0);
+		}
+#endif
+#ifdef EMO
+		if ((ExLimit::Data.byte[2] & 0x80) != 0) {
+			NVIC_SystemReset();
 		}
 #endif
 		PowerDev::RefreshData();
