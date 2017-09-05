@@ -39,13 +39,14 @@
 
 #include "PID.h"
 
-//#define SPFUN1
+#define SPFUN1
 #define EMO
 
 void PeriphInit();
 
 int main(int argc, char* argv[]) {
 	PeriphInit();
+
 	while (1) {
 		if (Protocol::P_Rcv.flag) { //新的指令到达
 			LED::Turn(Color_Blue);
@@ -73,9 +74,9 @@ void PeriphInit() {
 	LED::Turn(Color_Blue);
 
 	//Init Comunication
-	U_USART3.begin(500000);
-	SPIBUS::Init();
+	U_USART3.begin(1024000);
 	U_SPI2::Init(SPI2_Speed_9M);
+	SPIBUS::Init();
 
 	Protocol::Init();
 
@@ -101,8 +102,6 @@ void PeriphInit() {
 
 void TimeTickISR() {
 	static uint16_t count = 0;
-//	static float lastOut;
-//	static float k = 0.7;
 
 	LED::Turn(Color_Blue);
 	count++;
@@ -115,10 +114,6 @@ void TimeTickISR() {
 		Function::PID.Compute();
 
 		U_DAC::RefreshData((uint16_t) (Function::PIDParam.Output + 2047));
-//		U_DAC::RefreshData(
-//				(uint16_t) (((Function::PIDParam.out + 2047) * (1.0 - k))
-//						+ (lastOut * k)));
-//		lastOut = Function::PIDParam.out + 2047;
 	}
 	if (count >= 100) {
 		ExLimit::RefreshData();
